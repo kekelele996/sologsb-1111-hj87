@@ -64,6 +64,17 @@ export function findConflicts(candidate: LithoLog, existing: LithoLog[]): RangeC
     .filter((item): item is RangeConflict => item !== null);
 }
 
+/** 回次与岩性编录的深度重叠检测：同孔且深度区间相交的编录段（用于修订留痕门槛） */
+export function findLithoOverlaps(
+  run: Pick<DrillRun, 'holeId' | 'fromDepth' | 'toDepth'>,
+  lithos: LithoLog[],
+): LithoLog[] {
+  return lithos
+    .filter((log) => log.holeId === run.holeId)
+    .filter((log) => rangesOverlap(run.fromDepth, run.toDepth, log.fromDepth, log.toDepth))
+    .sort((a, b) => a.fromDepth - b.fromDepth);
+}
+
 /** 合并深度区间（用于覆盖计算） */
 export function mergeRanges(ranges: Array<{ from: number; to: number }>): Array<{ from: number; to: number }> {
   const sorted = [...ranges].filter((r) => r.to > r.from).sort((a, b) => a.from - b.from);
