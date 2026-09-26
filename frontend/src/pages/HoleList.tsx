@@ -9,7 +9,7 @@ import { useHoleStore } from '../stores/holeStore';
 import { useRunStore } from '../stores/runStore';
 import { useBoxStore } from '../stores/boxStore';
 import { RIG_NOS, SHIFTS, type DrillHole, type SurveyPoint } from '../types/drill-hole';
-import { mergeRanges } from '../utils/recovery';
+import { isActiveRun, mergeRanges } from '../utils/recovery';
 import { uid } from '../utils/id';
 
 const { Title, Paragraph, Text } = Typography;
@@ -65,7 +65,12 @@ export default function HoleList() {
   const visible = useMemo(() => filter.apply(holes), [holes, filter]);
 
   const coverageText = (holeId: string) => {
-    const merged = mergeRanges(runs.filter((run) => run.holeId === holeId).map((run) => ({ from: run.fromDepth, to: run.toDepth })));
+    const merged = mergeRanges(
+      runs
+        .filter(isActiveRun)
+        .filter((run) => run.holeId === holeId)
+        .map((run) => ({ from: run.fromDepth, to: run.toDepth })),
+    );
     if (merged.length === 0) return '尚无回次';
     return merged.map((range) => `${range.from}~${range.to}m`).join('、');
   };

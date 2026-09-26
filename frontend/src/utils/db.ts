@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { DrillHole } from '../types/drill-hole';
-import type { DrillRun } from '../types/drill-run';
+import type { DrillRun, RunRevision } from '../types/drill-run';
 import type { CoreBox } from '../types/core-box';
 import type { LithoLog } from '../types/litho-log';
 
@@ -8,13 +8,14 @@ import type { LithoLog } from '../types/litho-log';
 export const DB_NAME = 'gbdrillcore-db';
 
 /** 当前 schema 版本，与 db.version(n) 对应 */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 class DrillCoreDB extends Dexie {
   holes!: Table<DrillHole, string>;
   runs!: Table<DrillRun, string>;
   boxes!: Table<CoreBox, string>;
   lithos!: Table<LithoLog, string>;
+  runRevisions!: Table<RunRevision, string>;
   meta!: Table<{ key: string; value: string }, string>;
 
   constructor() {
@@ -46,6 +47,28 @@ class DrillCoreDB extends Dexie {
           .modify((row: LithoLog) => {
             if (typeof row.rqd !== 'number') {
               row.rqd = 0;
+            }
+          });
+      });
+
+    // v3：回次修订留痕——新增 runRevisions 表，回次表增加 status 索引；
+    // 历史回次统一回填为「正常」。升级前请在顶栏「导出备份」导出 JSON。
+    this.version(3)
+      .stores({
+        holes: 'id, holeNo, rigNo, shift, startDate',
+        runs: 'id, runNo, holeId, fromDepth, toDepth, shift, status',
+        boxes: 'id, boxNo, holeId, shelfPos, boxedAt',
+        lithos: 'id, holeId, fromDepth, toDepth, [holeId+fromDepth], lithology',
+        runRevisions: 'id, runId, holeId, revisedAt',
+        meta: 'key',
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table('runs')
+          .toCollection()
+          .modify((row: DrillRun) => {
+            if (row.status !== '作废') {
+              row.status = '正常';
             }
           });
       });

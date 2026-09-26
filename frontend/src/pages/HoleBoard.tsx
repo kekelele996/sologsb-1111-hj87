@@ -10,14 +10,15 @@ import { useHoleStore, holeProgressList } from '../stores/holeStore';
 import { useRunStore, anomalyList } from '../stores/runStore';
 import { RIG_NOS, SHIFTS, type HoleProgress } from '../types/drill-hole';
 import type { RunAnomaly } from '../types/drill-run';
-import { isAnomaly } from '../utils/recovery';
+import { isAnomaly, isActiveRun } from '../utils/recovery';
 
 const { Title, Paragraph, Text } = Typography;
 
-/** 工作台：钻孔进度与采取率异常清单（低于 75% 标红） */
+/** 工作台：钻孔进度与采取率异常清单（低于 75% 标红），作废回次不计入 */
 export default function HoleBoard() {
   const holes = useHoleStore((s) => s.holes);
-  const runs = useRunStore((s) => s.runs);
+  const allRuns = useRunStore((s) => s.runs);
+  const runs = useMemo(() => allRuns.filter(isActiveRun), [allRuns]);
   const filter = useHoleFilter();
 
   const visibleHoles = useMemo(() => filter.apply(holes), [holes, filter]);
@@ -32,6 +33,7 @@ export default function HoleBoard() {
   const inDrilling = progress.filter((item) => !item.finished).length;
   const finished = progress.filter((item) => item.finished).length;
   const supplement = progress.filter((item) => item.needSupplement);
+  const voidedCount = allRuns.length - runs.length;
   const avgRecovery = useMemo(() => {
     const totalFootage = runs.reduce((sum, run) => sum + run.footage, 0);
     const totalCore = runs.reduce((sum, run) => sum + run.coreLength, 0);
@@ -181,11 +183,11 @@ export default function HoleBoard() {
           <Card title="异常统计" size="small" style={{ marginTop: 16 }}>
             <Space direction="vertical" size={6} style={{ width: '100%' }}>
               <Text>
-                回次总数 <Text strong>{runs.length}</Text> 个，其中采取率异常{' '}
+                有效回次 <Text strong>{runs.length}</Text> 个，其中采取率异常{' '}
                 <Text strong type="danger">
                   {runs.filter((run) => isAnomaly(run.recovery)).length}
                 </Text>{' '}
-                个
+                个{voidedCount > 0 ? <Text type="secondary">（另有作废 {voidedCount} 个，不计入）</Text> : null}
               </Text>
               <Text type="secondary">
                 累计进尺 {runs.reduce((sum, run) => sum + run.footage, 0).toFixed(2)} m · 累计岩芯{' '}

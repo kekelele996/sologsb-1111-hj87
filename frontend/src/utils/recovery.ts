@@ -23,6 +23,33 @@ export function isAnomaly(recovery: number): boolean {
   return recovery < RECOVERY_THRESHOLDS.qualified;
 }
 
+/** 回次是否仍有效：作废回次不参与采取率、工作台异常清单与岩芯箱连续性计算 */
+export function isActiveRun(run: DrillRun): boolean {
+  return run.status !== '作废';
+}
+
+/** 回次深度区间与同孔岩性编录区间是否重叠（端点相接不算重叠） */
+export function runLithoOverlaps(
+  run: Pick<DrillRun, 'holeId' | 'fromDepth' | 'toDepth'>,
+  lithos: Pick<LithoLog, 'holeId' | 'fromDepth' | 'toDepth'>[],
+): boolean {
+  return lithos.some((log) => log.holeId === run.holeId && rangesOverlap(run.fromDepth, run.toDepth, log.fromDepth, log.toDepth));
+}
+
+/** 列出与回次深度区间重叠的同孔岩性编录区间 */
+export function overlappingLithos(
+  run: Pick<DrillRun, 'holeId' | 'fromDepth' | 'toDepth'>,
+  lithos: LithoLog[],
+): Array<{ log: LithoLog; overlapFrom: number; overlapTo: number }> {
+  return lithos
+    .filter((log) => log.holeId === run.holeId)
+    .map((log) => {
+      const overlap = overlapRange(run.fromDepth, run.toDepth, log.fromDepth, log.toDepth);
+      return overlap ? { log, overlapFrom: overlap.from, overlapTo: overlap.to } : null;
+    })
+    .filter((item): item is { log: LithoLog; overlapFrom: number; overlapTo: number } => item !== null);
+}
+
 /** 进尺 = 止深度 - 起深度 */
 export function footageOf(fromDepth: number, toDepth: number): number {
   return Number(Math.max(0, (Number(toDepth) || 0) - (Number(fromDepth) || 0)).toFixed(2));

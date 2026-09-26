@@ -9,7 +9,7 @@ import { useHoleStore } from '../stores/holeStore';
 import { useRunStore } from '../stores/runStore';
 import { useBoxStore } from '../stores/boxStore';
 import { SHELF_POSITIONS, type CoreBox, type BoxContinuity } from '../types/core-box';
-import { boxCapacityOk, checkBoxContinuity, validateRange } from '../utils/recovery';
+import { boxCapacityOk, checkBoxContinuity, isActiveRun, validateRange } from '../utils/recovery';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -45,7 +45,9 @@ export default function CoreBoxList() {
   const holes = useHoleStore((s) => s.holes);
   const currentHoleId = useHoleStore((s) => s.currentHoleId);
   const setCurrentHole = useHoleStore((s) => s.setCurrentHole);
-  const runs = useRunStore((s) => s.runs);
+  const allRuns = useRunStore((s) => s.runs);
+  /** 作废回次不参与装箱深度连续性计算 */
+  const runs = useMemo(() => allRuns.filter(isActiveRun), [allRuns]);
   const boxes = useBoxStore((s) => s.boxes);
   const addBox = useBoxStore((s) => s.addBox);
   const updateBox = useBoxStore((s) => s.updateBox);

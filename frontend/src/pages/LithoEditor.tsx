@@ -16,7 +16,7 @@ import {
   type Lithology,
   type Mineralization,
 } from '../types/litho-log';
-import { gapsWithin, validateRange } from '../utils/recovery';
+import { gapsWithin, isActiveRun, validateRange } from '../utils/recovery';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -40,7 +40,9 @@ export default function LithoEditor() {
   const holes = useHoleStore((s) => s.holes);
   const currentHoleId = useHoleStore((s) => s.currentHoleId);
   const setCurrentHole = useHoleStore((s) => s.setCurrentHole);
-  const runs = useRunStore((s) => s.runs);
+  const allRuns = useRunStore((s) => s.runs);
+  /** 作废回次不再作为岩芯来源参与断档提示与采取率异常段绘制 */
+  const runs = useMemo(() => allRuns.filter(isActiveRun), [allRuns]);
   const lithos = useLithoStore((s) => s.lithos);
   const addLitho = useLithoStore((s) => s.addLitho);
   const updateLitho = useLithoStore((s) => s.updateLitho);

@@ -29,3 +29,13 @@ a {
 .conflict-row > td {
   background: #fff1f0 !important;
 }
+
+/* 回次台账：已作废回次整行弱化 */
+.voided-row > td {
+  background: #f5f5f5 !important;
+  color: #9aa7b0;
+}
+
+.voided-row .ant-tag {
+  opacity: 1;
+}

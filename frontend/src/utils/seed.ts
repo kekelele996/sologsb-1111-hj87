@@ -127,6 +127,7 @@ function buildRuns(): DrillRun[] {
         shift: (['甲班', '乙班', '丙班'] as const)[i % 3],
         drilledAt: daysAgo(30 - Math.min(28, i)),
         recorder: i % 2 === 0 ? '高振华' : '周明',
+        status: '正常',
         remark: recovery < 75 ? '岩芯破碎，采取率偏低' : undefined,
       });
     }

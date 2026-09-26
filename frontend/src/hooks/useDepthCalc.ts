@@ -1,9 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useRunStore } from '../stores/runStore';
 import {
   footageOf,
   gapsWithin,
   gradeOf,
+  isActiveRun,
   isAnomaly,
   mergeRanges,
   reachedDepthOf,
@@ -15,23 +16,26 @@ import type { DrillRun } from '../types/drill-run';
 export interface HoleDepthSummary {
   runs: DrillRun[];
   runCount: number;
-  /** 累计进尺（m） */
+  /** 累计进尺（m），仅统计未作废回次 */
   totalFootage: number;
-  /** 累计岩芯长度（m） */
+  /** 累计岩芯长度（m），仅统计未作废回次 */
   totalCore: number;
-  /** 加权平均采取率（%） */
+  /** 加权平均采取率（%），仅统计未作废回次 */
   averageRecovery: number;
-  /** 异常回次数（采取率 < 75%） */
+  /** 异常回次数（采取率 < 75%），仅统计未作废回次 */
   anomalyCount: number;
-  /** 已钻进深度（m） */
+  /** 已钻进深度（m），仅统计未作废回次 */
   reachedDepth: number;
-  /** 深度覆盖区间 */
+  /** 深度覆盖区间，仅统计未作废回次 */
   coverage: Array<{ from: number; to: number }>;
+  /** 作废回次数 */
+  voidedCount: number;
 }
 
-/** 进尺、岩芯长度、采取率与深度覆盖计算（回次页与岩芯箱页共用） */
+/** 进尺、岩芯长度、采取率与深度覆盖计算（回次页与岩芯箱页共用，作废回次不参与） */
 export function useDepthCalc() {
-  const runs = useRunStore((s) => s.runs);
+  const allRuns = useRunStore((s) => s.runs);
+  const runs = useMemo(() => allRuns.filter(isActiveRun), [allRuns]);
 
   const runsOf = useCallback((holeId: string) => runs.filter((run) => run.holeId === holeId), [runs]);
 
@@ -54,9 +58,10 @@ export function useDepthCalc() {
         anomalyCount: holeRuns.filter((run) => isAnomaly(run.recovery)).length,
         reachedDepth: reachedDepthOf(holeRuns),
         coverage: mergeRanges(holeRuns.map((run) => ({ from: run.fromDepth, to: run.toDepth }))),
+        voidedCount: allRuns.filter((run) => run.holeId === holeId && !isActiveRun(run)).length,
       };
     },
-    [runsOf],
+    [runsOf, allRuns],
   );
 
   const gapsIn = useCallback(
